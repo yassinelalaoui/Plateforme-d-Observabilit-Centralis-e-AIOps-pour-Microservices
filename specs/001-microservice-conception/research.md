@@ -45,6 +45,19 @@ Prometheus. Logs use JSON and include trace identifiers, not secrets or full req
 - Logs only: rejected because it cannot provide trace linkage or alertable metrics.
 - High-cardinality labels such as user or order IDs: rejected by the constitution.
 
+## Decision: Private ELK log-ingestion pipeline
+
+**Rationale**: The constitution requires structured logs to be ingestible by ELK. Both services
+write JSON logs including a trace identifier; Logstash receives and parses those records, indexes
+them in Elasticsearch, and Kibana provides the local operator search experience. The pipeline is
+on the telemetry network; only the explicitly required Kibana UI may be published for local use.
+
+**Alternatives considered**:
+
+- Keep logs only in container stdout: rejected because it does not satisfy ELK ingestibility.
+- Publish Elasticsearch or Logstash ports: rejected because application and operator access do
+  not require host exposure.
+
 ## Decision: Failure mapping and timeouts
 
 **Rationale**: The User Service uses a finite outbound timeout and maps Order Service network,

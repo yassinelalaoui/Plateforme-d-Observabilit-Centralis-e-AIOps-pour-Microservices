@@ -114,11 +114,11 @@ their operational signals.
   mode at a time, and reject invalid or conflicting settings at startup.
 - **FR-008**: Each service MUST return clear failure responses when its required dependency is
   unavailable and MUST not report a partial dependency result as a complete success.
-- **FR-010**: When the User Service cannot obtain order information because the Order Service is
-  unavailable or its request times out, `GET /users` MUST return HTTP 503 Service Unavailable.
 - **FR-009**: The project MUST include a basic `README.md` that documents local startup,
   configuration of normal and anomaly modes, and reproducible requests that verify `/users` and
   `/orders`.
+- **FR-010**: When the User Service cannot obtain order information because the Order Service is
+  unavailable or its request times out, `GET /users` MUST return HTTP 503 Service Unavailable.
 
 ### Operational Requirements *(required for deployable services)*
 
@@ -133,6 +133,10 @@ their operational signals.
   observability.
 - **OR-004**: The feature MUST provide a dashboard or documented queries that show request rate,
   error rate, and latency for both endpoints, including the effect of an enabled anomaly mode.
+- **OR-005**: Both services MUST send structured, secret-free logs to the private ELK pipeline;
+  operators MUST be able to find logs for a request by its trace identifier.
+- **OR-006**: The project MUST define alert rules for User Service dependency failures, Order
+  Service HTTP 500 errors, sustained latency degradation, and telemetry-pipeline unavailability.
 
 ### Key Entities *(include if feature involves data)*
 

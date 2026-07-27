@@ -44,14 +44,14 @@ configuration required before feature slices run together.
 
 - [ ] T007 Create the `orders` schema, constraints, and indexes in `database/order-service/init/001-create-orders.sql`.
 - [ ] T008 Create deterministic sample order records matching `data-model.md` in `database/order-service/init/002-seed-orders.sql`.
-- [ ] T009 Create the Compose topology, pinned images, non-root services, resource limits, health checks, named volumes, and `edge`, `application`, and `data` networks in `docker-compose.yml`.
+- [ ] T009 Create the Compose topology for User Service, Order Service, PostgreSQL, OpenTelemetry Collector, Prometheus, Grafana, Elasticsearch, Logstash, and Kibana with pinned images, non-root services, resource limits, health checks, named volumes, and isolated `edge`, `application`, `data`, and `telemetry` networks in `docker-compose.yml`.
 - [ ] T010 Configure PostgreSQL credentials, volume ownership, and private data-network attachment in `docker-compose.yml` and `.env.example` without publishing a database host port.
-- [ ] T011 [P] Configure OpenTelemetry collection and trace-context forwarding in `config/otel-collector-config.yaml`.
-- [ ] T012 [P] Configure Prometheus scraping of both service metric endpoints in `config/prometheus.yml`.
+- [ ] T011 [P] Configure OpenTelemetry collection, trace-context forwarding, and the private Logstash JSON log pipeline in `config/otel-collector-config.yaml` and `config/logstash/logstash.conf`.
+- [ ] T012 [P] Configure Prometheus scraping, alert-rule loading, and telemetry-pipeline health checks in `config/prometheus.yml`.
 - [ ] T013 [P] Provision Prometheus as the Grafana datasource in `config/grafana/provisioning/datasources.yaml`.
 - [ ] T014 [P] Provision the dashboard folder in `config/grafana/provisioning/dashboards.yaml`.
-- [ ] T015 Add the User Service application bootstrap, actuator health/readiness endpoints, JSON logging, and graceful shutdown settings in `user-service/src/main/java/com/aiops/userservice/UserServiceApplication.java` and `user-service/src/main/resources/application.yml`.
-- [ ] T016 Add Order Service bootstrap, process shutdown handling, JSON logging, and health/readiness routes in `order-service/src/app.ts`, `order-service/src/server.ts`, and `order-service/src/observability/telemetry.ts`.
+- [ ] T015 Add the User Service application bootstrap, actuator health/readiness endpoints, trace-correlated JSON logging for the ELK pipeline, and graceful shutdown settings in `user-service/src/main/java/com/aiops/userservice/UserServiceApplication.java` and `user-service/src/main/resources/application.yml`.
+- [ ] T016 Add Order Service bootstrap, process shutdown handling, trace-correlated JSON logging for the ELK pipeline, and health/readiness routes in `order-service/src/app.ts`, `order-service/src/server.ts`, and `order-service/src/observability/telemetry.ts`.
 - [ ] T017 Implement validated `ANOMALY_MODE` loading with `normal`, `error`, and `latency` as the only accepted values in `order-service/src/config/env.ts`.
 - [ ] T018 Create least-privilege multi-stage container builds in `user-service/Dockerfile` and `order-service/Dockerfile`.
 
@@ -147,11 +147,11 @@ exclusive, are disabled by default, and remain visible through safe telemetry.
 
 **Purpose**: Complete the operational artifacts, documentation, and end-to-end quality gates.
 
-- [ ] T045 [P] Create request-rate, error-rate, and latency visualizations for both endpoints in `config/grafana/dashboards/microservices-overview.json`.
-- [ ] T046 [P] Add actionable alert rules or documented alert queries for dependency failure, Order Service errors, and latency degradation in `config/prometheus.yml` and `README.md`.
+- [ ] T045 [P] Create request-rate, error-rate, latency, and ELK log-correlation visualizations for both endpoints in `config/grafana/dashboards/microservices-overview.json`.
+- [ ] T046 [P] Create actionable rules for dependency failure, Order Service errors, latency degradation, and telemetry-pipeline unavailability in `config/alerts/microservices-alerts.yaml`, then load and document them in `config/prometheus.yml` and `README.md`.
 - [ ] T047 Update local startup, normal/error/latency validation, test commands, telemetry access, and cleanup instructions in `README.md`.
 - [ ] T048 Verify Docker isolation, non-root users, image pins, resource limits, exposed ports, named-volume scope, and secret handling in `docker-compose.yml`, `user-service/Dockerfile`, and `order-service/Dockerfile`.
-- [ ] T049 Verify W3C trace propagation, JSON log correlation, metric label cardinality, and the dashboard/alert evidence for all normal and anomaly scenarios in `tests/integration/compose-smoke.test.ts` and `config/grafana/dashboards/microservices-overview.json`.
+- [ ] T049 Verify W3C trace propagation, JSON log correlation and trace-ID search in Kibana, metric label cardinality, and the dashboard/alert evidence for all normal and anomaly scenarios in `tests/integration/compose-smoke.test.ts`, `config/grafana/dashboards/microservices-overview.json`, and `config/logstash/logstash.conf`.
 - [ ] T050 Run the full local validation sequence from `specs/001-microservice-conception/quickstart.md` and record any required corrections in `README.md`.
 
 ---

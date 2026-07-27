@@ -34,9 +34,12 @@ Expect HTTP 200 responses that follow the contracts in
 
 1. Request `GET /users` once in normal mode and once in each anomaly mode.
 2. In the telemetry backend, locate one trace that contains User Service and Order Service spans
-   sharing the same trace ID.
+   sharing the same trace ID; search Kibana for that same trace ID and confirm the correlated JSON
+   logs contain no credentials or request payloads.
 3. In Prometheus/Grafana, verify request count, error count, and request-duration metrics for both
-   endpoints. Confirm labels do not contain user IDs, order IDs, credentials, or request bodies.
+   endpoints, plus alert coverage for dependency failures, HTTP 500 errors, latency degradation,
+   and telemetry-pipeline unavailability. Confirm labels do not contain user IDs, order IDs,
+   credentials, or request bodies.
 
 ## Stop and clean up
 

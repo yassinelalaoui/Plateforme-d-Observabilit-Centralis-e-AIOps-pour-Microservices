@@ -10,8 +10,9 @@ Implement a lightweight two-service demonstration: a Spring Boot User Service ex
 and calls a Node.js Order Service, which exposes `GET /orders` backed by a private PostgreSQL
 database. Docker Compose orchestrates the services with isolated application and data networks.
 Order Service configuration selects normal operation, a 20% HTTP 500 injection mode, or a random
-3–5 second latency injection mode. Both services export OpenTelemetry traces, structured logs,
-and Prometheus metrics; the User Service maps Order Service unavailability or timeouts to HTTP 503.
+3–5 second latency injection mode. Both services export OpenTelemetry traces, Prometheus metrics,
+and structured logs through a private ELK pipeline; the User Service maps Order Service
+unavailability or timeouts to HTTP 503.
 
 ## Technical Context
 
@@ -57,7 +58,8 @@ local observability signals; authentication, writes, paging, and ML workloads ar
   503 for Order Service timeout/unavailability; Compose defines stop grace periods and limits.
 - [x] OpenTelemetry traces, structured logs, Prometheus metrics, and Grafana dashboards/alerts
   are defined: W3C trace context flows from User to Order; metrics cover request count, errors,
-  and duration; dashboard/queries distinguish normal and anomaly modes; logs omit secrets.
+  and duration; dashboard/queries distinguish normal and anomaly modes; logs flow through private
+  Elasticsearch, Logstash, and Kibana services, omit secrets, and retain trace identifiers.
 - [x] Automated checks include tests proportionate to risk: unit, contract, and Compose-backed
   integration tests cover endpoint behavior, service failure mapping, seeded data, and anomalies.
 - [x] ML work is not applicable to this sub-phase.
@@ -90,6 +92,10 @@ specs/001-microservice-conception/
 ├── config/
 │   ├── otel-collector-config.yaml
 │   ├── prometheus.yml
+│   ├── alerts/
+│   │   └── microservices-alerts.yaml
+│   ├── logstash/
+│   │   └── logstash.conf
 │   └── grafana/
 │       ├── dashboards/
 │       │   └── microservices-overview.json
@@ -149,7 +155,8 @@ specs/001-microservice-conception/
 **Structure Decision**: Keep each deployable service self-contained, place cross-service runtime
 configuration at the root, and isolate database initialization scripts under the Order Service
 ownership path. The root `tests/` directory contains only cross-service validation; service tests
-remain with their service.
+remain with their service. Elasticsearch, Logstash, Kibana, OpenTelemetry Collector, Prometheus,
+and Grafana are private telemetry-plane services except for explicitly required local operator UIs.
 
 ## Complexity Tracking
 
