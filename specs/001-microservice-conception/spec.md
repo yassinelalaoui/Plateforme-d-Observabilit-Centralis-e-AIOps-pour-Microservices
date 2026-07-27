@@ -11,6 +11,12 @@ retrieves users and calls an Order Service, and an Order Service that retrieves 
 PostgreSQL datastore. Support controlled error and latency anomalies in the Order Service, and
 provide local run and test documentation."
 
+## Clarifications
+
+### Session 2026-07-27
+
+- Q: Which HTTP status should the User Service return when it cannot obtain order data? → A: HTTP 503 Service Unavailable.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Retrieve Users with Their Order Context (Priority: P1)
@@ -30,8 +36,8 @@ that the response succeeds and includes the User Service result plus the availab
    requests `GET /users`, **Then** the User Service returns a successful response containing user
    information and the order information obtained from the Order Service.
 2. **Given** the Order Service cannot complete its request, **When** a user requests `GET /users`,
-   **Then** the User Service returns a clear failure response without presenting incomplete order
-   information as a successful result.
+   **Then** the User Service returns HTTP 503 Service Unavailable without presenting incomplete
+   order information as a successful result.
 
 ---
 
@@ -108,6 +114,8 @@ their operational signals.
   mode at a time, and reject invalid or conflicting settings at startup.
 - **FR-008**: Each service MUST return clear failure responses when its required dependency is
   unavailable and MUST not report a partial dependency result as a complete success.
+- **FR-010**: When the User Service cannot obtain order information because the Order Service is
+  unavailable or its request times out, `GET /users` MUST return HTTP 503 Service Unavailable.
 - **FR-009**: The project MUST include a basic `README.md` that documents local startup,
   configuration of normal and anomaly modes, and reproducible requests that verify `/users` and
   `/orders`.
