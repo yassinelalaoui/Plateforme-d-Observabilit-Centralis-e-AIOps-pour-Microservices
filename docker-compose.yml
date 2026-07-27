@@ -1,0 +1,132 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/order-service/init:/docker-entrypoint-initdb.d:ro
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt: [no-new-privileges:true]
+    read_only: false
+    deploy: { resources: { limits: { memory: 256M, cpus: '0.50' } } }
+
+  order-service:
+    build: ./order-service
+    environment:
+      PORT: 8081
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      ANOMALY_MODE: ${ANOMALY_MODE:-normal}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+    depends_on:
+      postgres: { condition: service_healthy }
+      otel-collector: { condition: service_started }
+      logstash: { condition: service_started }
+    ports: ["${ORDER_SERVICE_PORT:-8081}:8081"]
+    networks: [application, data, telemetry]
+    user: "10001:10001"
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8081/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy: { resources: { limits: { memory: 256M, cpus: '0.50' } } }
+
+  user-service:
+    build: ./user-service
+    environment:
+      SERVER_PORT: 8080
+      ORDER_SERVICE_BASE_URL: http://order-service:8081
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5000
+    depends_on:
+      order-service: { condition: service_healthy }
+      otel-collector: { condition: service_started }
+    ports: ["${USER_SERVICE_PORT:-8080}:8080"]
+    networks: [edge, application, telemetry]
+    user: "10001:10001"
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 20s
+    deploy: { resources: { limits: { memory: 256M, cpus: '0.50' } } }
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes: ["./config/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro"]
+    networks: [telemetry]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs: [/tmp]
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/alerts:/etc/prometheus/alerts:ro
+    networks: [edge, telemetry]
+    ports: ["9090:9090"]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs: [/prometheus, /tmp]
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    environment: { GF_SECURITY_ADMIN_PASSWORD: admin }
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [edge, telemetry]
+    ports: ["${GRAFANA_PORT:-3000}:3000"]
+    user: "472:472"
+    security_opt: [no-new-privileges:true]
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    volumes: [elasticsearch-data:/usr/share/elasticsearch/data]
+    networks: [telemetry]
+    security_opt: [no-new-privileges:true]
+    deploy: { resources: { limits: { memory: 1G, cpus: '1.00' } } }
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.3
+    volumes: ["./config/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro"]
+    networks: [telemetry]
+    depends_on: { elasticsearch: { condition: service_started } }
+    security_opt: [no-new-privileges:true]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    environment: { ELASTICSEARCH_HOSTS: http://elasticsearch:9200 }
+    networks: [edge, telemetry]
+    ports: ["${KIBANA_PORT:-5601}:5601"]
+    depends_on: { elasticsearch: { condition: service_started } }
+    security_opt: [no-new-privileges:true]
+
+networks:
+  edge: {}
+  application: { internal: true }
+  data: { internal: true }
+  telemetry: { internal: true }
+volumes:
+  postgres-data: {}
+  elasticsearch-data: {}

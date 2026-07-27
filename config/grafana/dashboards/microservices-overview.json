@@ -1,0 +1,12 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    { "type": "timeseries", "title": "Order Service requests", "targets": [{ "expr": "sum(rate(http_requests_total{service=\"order-service\"}[1m]))" }] },
+    { "type": "timeseries", "title": "Order Service errors", "targets": [{ "expr": "sum(rate(http_requests_total{service=\"order-service\",status=\"500\"}[1m]))" }] },
+    { "type": "timeseries", "title": "User Service 503s", "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count{status=\"503\"}[1m]))" }] }
+  ],
+  "schemaVersion": 39,
+  "title": "Microservices Overview",
+  "version": 1
+}

@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: user-service
+server:
+  shutdown: graceful
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+order-service:
+  base-url: ${ORDER_SERVICE_BASE_URL:http://localhost:8081}
+  timeout: ${ORDER_SERVICE_TIMEOUT:2s}
+logging:
+  structured:
+    format:
+      console: logstash

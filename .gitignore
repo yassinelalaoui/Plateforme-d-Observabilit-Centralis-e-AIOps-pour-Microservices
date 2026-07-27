@@ -1,0 +1,13 @@
+.env
+.env.local
+node_modules/
+dist/
+coverage/
+*.log
+target/
+*.class
+*.jar
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
