@@ -145,4 +145,52 @@ describe('GET /orders HTTP route', () => {
       expect(response.text).toContain('http_requests_total');
     });
   });
+
+  describe('/anomaly endpoints', () => {
+    it('should retrieve default anomaly mode and update ml_anomaly_score metric', async () => {
+      const repository = createMockRepository();
+      const { app } = createApp({ port: 8081, databaseUrl: 'mock://', anomalyMode: 'normal' }, repository);
+
+      // Verify default get returns normal
+      const getRes = await request(app).get('/anomaly');
+      expect(getRes.status).toBe(200);
+      expect(getRes.body).toEqual({ mode: 'normal' });
+
+      // Verify ml_anomaly_score is 0.05 in metrics
+      const metricsRes = await request(app).get('/metrics');
+      expect(metricsRes.text).toContain('ml_anomaly_score 0.05');
+    });
+
+    it('should dynamically update anomaly mode via POST and update metrics', async () => {
+      const repository = createMockRepository();
+      const { app } = createApp({ port: 8081, databaseUrl: 'mock://', anomalyMode: 'normal' }, repository);
+
+      // Switch to error mode
+      const postRes = await request(app)
+        .post('/anomaly')
+        .send({ mode: 'error' });
+      expect(postRes.status).toBe(200);
+      expect(postRes.body).toEqual({ mode: 'error' });
+
+      // Verify GET returns error
+      const getRes = await request(app).get('/anomaly');
+      expect(getRes.status).toBe(200);
+      expect(getRes.body).toEqual({ mode: 'error' });
+
+      // Verify ml_anomaly_score is 0.85 in metrics
+      const metricsRes = await request(app).get('/metrics');
+      expect(metricsRes.text).toContain('ml_anomaly_score 0.85');
+    });
+
+    it('should return HTTP 400 for an invalid anomaly mode', async () => {
+      const repository = createMockRepository();
+      const { app } = createApp({ port: 8081, databaseUrl: 'mock://', anomalyMode: 'normal' }, repository);
+
+      const postRes = await request(app)
+        .post('/anomaly')
+        .send({ mode: 'invalid-mode' });
+      expect(postRes.status).toBe(400);
+      expect(postRes.body).toEqual({ error: 'Invalid anomaly mode' });
+    });
+  });
 });

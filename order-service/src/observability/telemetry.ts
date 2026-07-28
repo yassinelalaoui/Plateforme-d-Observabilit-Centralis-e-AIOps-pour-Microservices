@@ -1,6 +1,6 @@
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { resourceFromAttributes } from '@opentelemetry/resources';
+import { Resource } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import pino from 'pino';
@@ -17,7 +17,7 @@ export function startTelemetry(): NodeSDK {
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
   const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   const sdk = new NodeSDK({
-    resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: 'order-service' }),
+    resource: new Resource({ [ATTR_SERVICE_NAME]: 'order-service' }),
     traceExporter: endpoint ? new OTLPTraceExporter({ url: `${endpoint}/v1/traces` }) : undefined
   });
   sdk.start();
