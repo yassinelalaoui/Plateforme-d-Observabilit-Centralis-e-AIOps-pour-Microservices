@@ -1,0 +1,60 @@
+openapi: 3.0.3
+info:
+  title: Order Service Anomaly Control API
+  version: 1.0.0
+  description: Dynamic control endpoints for simulating chaos anomalies.
+paths:
+  /anomaly:
+    get:
+      summary: Get current anomaly mode
+      description: Returns the active anomaly mode and associated mock ML anomaly score.
+      responses:
+        '200':
+          description: Active mode retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mode:
+                    type: string
+                    enum: [normal, error, latency]
+                    example: normal
+    post:
+      summary: Toggle anomaly mode
+      description: Programmatically updates the active anomaly mode.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mode
+              properties:
+                mode:
+                  type: string
+                  enum: [normal, error, latency]
+                  example: error
+      responses:
+        '200':
+          description: Anomaly mode updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mode:
+                    type: string
+                    enum: [normal, error, latency]
+                    example: error
+        '400':
+          description: Invalid anomaly mode provided
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid anomaly mode
