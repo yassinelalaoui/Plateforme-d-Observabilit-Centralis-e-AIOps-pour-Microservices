@@ -1,0 +1,14 @@
+{
+  "name": "my-project",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:contract": "vitest run --config vitest.config.ts tests/contract",
+    "test:integration": "vitest run --config vitest.config.ts tests/integration"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.1",
+    "typescript": "^5.6.2"
+  }
+}
