@@ -1,144 +1,221 @@
-# Microservice Conception (Sub-Phase 1.1)
+﻿# Platform for Centralized Observability & AIOps — Microservices
 
-A polyglot demonstration project implementing the **User Service** (Spring Boot + Java 21) and **Order Service** (Node.js 22 + TypeScript) backed by a private PostgreSQL datastore.
+This repository is a demo polyglot microservices platform composed of:
 
-## Architecture
+- User Service (Spring Boot / Java)
+- Order Service (Node.js + TypeScript)
+- PostgreSQL, OpenTelemetry Collector, Prometheus, Grafana, and ELK stack for observability
 
-- **User Service (`user-service/`)**: Port `8080`. Serves `GET /users` with static sample users aggregated with their order data from the Order Service.
-- **Order Service (`order-service/`)**: Port `8081`. Serves `GET /orders` with order records loaded from its private PostgreSQL instance.
-- **PostgreSQL (`database/`)**: Accessible only by the Order Service on a private data network.
-- **Observability Stack**:
-  - OpenTelemetry Collector: Port `4318` (OTLP HTTP receiver)
-  - Prometheus: Port `9090` (scraping metrics)
-  - Grafana: Port `3000` (visualizing performance and anomaly metrics)
-  - Elasticsearch + Logstash + Kibana: Port `5601` (ELK logging pipeline)
+The project includes unit tests, contract tests, and an integration smoke test that validates service-to-service communication.
+
+Table of Contents
+- Overview
+- Prerequisites
+- Quickstart (start services)
+- Verifying endpoints & observability
+- Anomaly modes
+- Running tests (unit, contract, integration)
+  - Host-run (requires published ports)
+  - Recommended: In-network test runner (Docker)
+- Troubleshooting
+- Contributing
+- License
+
+---
+
+## Overview
+
+The Order Service exposes order data on port `8081`. The User Service (port `8080`) aggregates user data and calls the Order Service. The observability components (OTel, Prometheus, Grafana, ELK) are included to demonstrate telemetry, metrics, and logs.
+
+Key paths:
+- order-service/ — Node.js service (Vitest tests)
+- user-service/ — Java service (Maven, JUnit)
+- tests/contract/ — Contract tests for cross-service expectations
+- tests/integration/ — Integration smoke tests for Compose-based topology
 
 ---
 
 ## Prerequisites
 
-- **Docker Desktop** or Docker Engine with Docker Compose v2.
-- **Node.js 22 LTS** & **Java 21 JRE/JDK** (if running/testing locally outside Docker).
-- **uv** (Python toolchain for running specify-cli tools).
+- Docker Desktop or Docker Engine + Docker Compose v2
+- Node.js 22.x (for local development of order-service)
+- Java 21 JDK (for local development of user-service)
+
+> Note: For running integration smoke tests reliably, the recommended approach is to run the tests inside the Docker Compose network (see "In-network test runner" below). This avoids host port mapping inconsistencies.
 
 ---
 
-## Quickstart
+## Quickstart — Start the services
 
-### 1. Configure the Environment
-Copy the example environment file to `.env`:
+1. Copy the environment file:
+
 ```bash
 cp .env.example .env
 ```
-Keep `ANOMALY_MODE=normal` to start in normal mode.
 
-### 2. Start the Topology
-Run the services using Docker Compose:
+2. Build and start the topology with Compose:
+
 ```bash
 docker compose up --build -d
 ```
-Verify health using:
+
+3. Verify containers and health:
+
 ```bash
 docker compose ps
 ```
-Wait for all services to report `healthy`.
 
-### 3. Verify Endpoints
-- **User Service**: `curl -i http://localhost:8080/users`
-- **Order Service**: `curl -i http://localhost:8081/orders`
-- **Metrics**: `curl -i http://localhost:8081/metrics` or `curl -i http://localhost:8080/actuator/prometheus`
+Wait until services report a healthy state.
 
 ---
 
-## Anomaly Modes
+## Verify endpoints & observability
 
-The Order Service supports three mutually exclusive anomaly modes controlled via the `ANOMALY_MODE` variable in `.env`.
+From the host (if ports are published):
 
-### 1. Normal Mode (`ANOMALY_MODE=normal`)
-Standard operation. No simulated errors or delays are injected.
-
-### 2. Error Mode (`ANOMALY_MODE=error`)
-Injects `HTTP 500 Internal Server Error` on approximately 20% of `GET /orders` requests.
-- **Verify**: Recreate the container after updating `.env`:
-  ```bash
-  docker compose up -d --force-recreate order-service
-  ```
-  Send 100 requests to `http://localhost:8081/orders` and confirm a ~20% error rate.
-  Verify that the User Service maps these failures to `HTTP 503 Service Unavailable`.
-
-### 3. Latency Mode (`ANOMALY_MODE=latency`)
-Delays all `GET /orders` requests by a random duration between 3 and 5 seconds.
-- **Verify**: Update `.env` and recreate the container:
-  ```bash
-  docker compose up -d --force-recreate order-service
-  ```
-  Call `http://localhost:8081/orders` and confirm each response takes between 3.0 and 5.5 seconds.
+- User Service: http://localhost:8080/users
+- Order Service: http://localhost:8081/orders
+- Grafana: http://localhost:3000 (admin/admin)
+- Kibana: http://localhost:5601
+- Prometheus: http://localhost:9090
 
 ---
 
-## Observability Portals
+## Anomaly Modes (Order Service)
 
-- **Grafana**: [http://localhost:3000](http://localhost:3000) (Credentials: `admin` / `admin`). Pre-configured with the **Microservices Overview** dashboard.
-- **Kibana**: [http://localhost:5601](http://localhost:5601). Explore log index `microservices-logs-*` for JSON logs correlated with W3C `traceId`.
-- **Prometheus**: [http://localhost:9090](http://localhost:9090). Inspect scraped metrics like `http_requests_total`.
+Control failure/latency behaviors via `.env` → `ANOMALY_MODE`:
+
+- `normal` — normal operation (default)
+- `error` — injects ~20% 500 errors on `/orders`
+- `latency` — injects random 3–5s delays on `/orders`
+
+After changing `.env`, recreate the order-service container:
+
+```bash
+docker compose up -d --force-recreate order-service
+```
 
 ---
 
 ## Running Tests
 
-### Order Service (Node.js / Vitest)
-From the `order-service/` directory:
+There are three main kinds of tests:
+
+- Unit tests (service-local)
+- Contract tests (verify API contracts across services)
+- Integration smoke tests (validate the running Compose topology)
+
+### Order service unit tests (Vitest)
+
 ```bash
+cd order-service
 npm install
 npm run test
-npm run lint
 ```
 
-### User Service (Java / Maven / JUnit)
-From the `user-service/` directory:
+Ensure dependencies are installed so that test imports (telemetry, logging, DB clients) succeed.
+
+### User service unit tests (Maven)
+
 ```bash
+cd user-service
 mvn test
 ```
 
-### Contract & Integration Smoke Tests
-From the root workspace (run after `npm install` inside `order-service/` to resolve Vitest dependencies):
-```bash
-npx vitest run tests/contract/
-```
-To run the integration smoke test against the active Compose topology you have two options:
+### Contract tests (quick verification)
 
-Option A — run from the host (requires Compose to publish the service ports to localhost):
+From the repository root (make sure `order-service` deps installed):
+
 ```bash
-# Ensure ports are published (localhost:8080 and localhost:8081), then run:
-npx vitest run tests/integration/compose-smoke.test.ts
+# install once in order-service
+cd order-service && npm install && cd ..
+# run contract tests using the order-service vitest config
+npx vitest run --config order-service/vitest.config.ts tests/contract
 ```
 
-Option B — run the test runner inside the Compose network (recommended when host port mapping is unreliable):
+### Integration smoke tests — two options
+
+Option A — Host-run (only if Compose publishes ports to localhost)
+
 ```bash
-# Build the bundled test-runner image (test-runner.Dockerfile is included in the repo):
+# ensure compose published ports and services are ready
+docker compose ps
+# run the integration test using the order-service vitest config
+npx vitest run --config order-service/vitest.config.ts tests/integration/compose-smoke.test.ts
+```
+
+If you encounter ECONNREFUSED errors to `127.0.0.1:8081`, the Order Service host port is not published or the app binds to localhost inside the container; use Option B.
+
+Option B — Recommended: In-network test runner (runs tests inside a container on the Compose network)
+
+1. Build the test-runner image (bundles Node, dependencies, and runs Vitest):
+
+```bash
 docker build -f test-runner.Dockerfile -t po-test-runner:latest .
+```
 
-# Run the test image attached to the Compose application network so services are reachable by name.
-# Replace <compose_project>_application with your Compose network name (often the repo folder name + "_application").
-# Example network name for this repo: plateforme-d-observabilit-centralis-e-aiops-pour-microservices_application
+2. Identify your Compose network name. Common pattern: `<folder>_application`. You can list networks with:
 
+```bash
+docker network ls | grep <partial-name>
+```
+
+3. Run the test runner attached to the Compose network (replace the network name if different):
+
+```bash
 docker run --rm --network plateforme-d-observabilit-centralis-e-aiops-pour-microservices_application \
   -e ORDER_SERVICE_URL="http://order-service:8081" \
   -e USER_SERVICE_URL="http://user-service:8080" \
   po-test-runner:latest
 ```
 
-The in-network runner avoids host ↔ container port mapping issues by resolving services using their Compose service names (order-service, user-service).
+This method resolves services by their Compose names and is robust for CI.
 
 ---
 
-## Cleanup
+## Troubleshooting
 
-To stop and remove containers:
-```bash
-docker compose down
-```
-To discard persistent database data as well:
-```bash
-docker compose down --volumes
-```
+- Vitest failing to load config:
+  - Ensure the `--config` path points to `order-service/vitest.config.ts` (scripts in package.json are configured to do this).
+  - Run `npm install` in `order-service` to provide required devDependencies (vitest, supertest, etc.).
+
+- Order Service unreachable on host (ECONNREFUSED 127.0.0.1:8081):
+  1. Confirm the container has a host port binding with:
+     ```bash
+     docker compose ps
+     docker inspect <order_container_id> --format '{{json .HostConfig.PortBindings}}'
+     ```
+  2. Recreate the service to apply ports:
+     ```bash
+     docker compose up -d --force-recreate --build order-service
+     ```
+  3. Check service logs for binding or startup errors:
+     ```bash
+     docker compose logs --tail 200 order-service
+     ```
+  4. Exec into the container to check which address the app is listening on (`0.0.0.0` required for host binding):
+     ```bash
+     docker exec -it <order_container_id> sh -c "ss -ltnp || netstat -ltnp"
+     ```
+
+- Tests time out or DNS/network errors in containers:
+  - Vitest worker threads can affect DNS/HTTP behavior in containers. If you observe flaky network behavior, disable worker threads in the Vitest config or run tests inside the in-network runner.
+
+- Tests import failures (missing packages like `supertest`):
+  - Run `npm install` in `order-service/` or add the missing packages as devDependencies in `package.json`.
+
+---
+
+## Contributing
+
+- Add contract tests under `tests/contract/` to validate APIs.
+- Keep `order-service/vitest.config.ts` in sync if new test folders are added.
+- For changes to Compose ports or service names, update the README and the `test-runner` instructions.
+
+PRs are welcome. Please include tests and update documentation for any behavior or configuration changes.
+
+---
+
+## License
+
+MIT
