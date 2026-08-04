@@ -32,7 +32,7 @@ services:
       otel-collector: { condition: service_started }
       logstash: { condition: service_started }
     ports: ["8081:8081"]
-    networks: [application, data, telemetry]
+    networks: [edge, application, data, telemetry]
     user: "10001:10001"
     read_only: true
     tmpfs: [/tmp]
