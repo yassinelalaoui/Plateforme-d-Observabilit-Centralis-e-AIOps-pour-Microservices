@@ -33,6 +33,16 @@ This repository contains a polyglot microservices topology designed to demonstra
    ```
    Wait for all services to report a healthy status.
 
+4. **Shutdown the Platform:**
+   To stop and remove all running containers and networks:
+   ```bash
+   docker compose down
+   ```
+   To also remove persisted volumes (e.g., PostgreSQL databases and Elasticsearch data for a clean reset):
+   ```bash
+   docker compose down -v
+   ```
+
 ---
 
 ## 🔗 Port Mappings & Services
