@@ -31,7 +31,7 @@ services:
       postgres: { condition: service_healthy }
       otel-collector: { condition: service_started }
       logstash: { condition: service_started }
-    ports: ["${ORDER_SERVICE_PORT:-8081}:8081"]
+    ports: ["127.0.0.1:8081:8081"]
     networks: [application, data, telemetry]
     user: "10001:10001"
     read_only: true
@@ -55,7 +55,7 @@ services:
     depends_on:
       order-service: { condition: service_healthy }
       otel-collector: { condition: service_started }
-    ports: ["${USER_SERVICE_PORT:-8080}:8080"]
+    ports: ["127.0.0.1:8080:8080"]
     networks: [edge, application, telemetry]
     user: "10001:10001"
     read_only: true

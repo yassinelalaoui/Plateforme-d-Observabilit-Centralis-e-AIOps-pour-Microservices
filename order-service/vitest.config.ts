@@ -8,5 +8,9 @@ export default defineConfig({
       '**/tests/**/*.test.ts',
       '**/test/**/*.test.ts',
     ],
+    // Disable worker threads for networked integration tests so fetch/DNS
+    // behave consistently inside Docker containers, and increase timeout.
+    threads: false,
+    testTimeout: 20000,
   },
 });

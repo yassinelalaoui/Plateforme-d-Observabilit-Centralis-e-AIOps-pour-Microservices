@@ -105,10 +105,30 @@ From the root workspace (run after `npm install` inside `order-service/` to reso
 ```bash
 npx vitest run tests/contract/
 ```
-To run the integration smoke test against the active Compose topology:
+To run the integration smoke test against the active Compose topology you have two options:
+
+Option A — run from the host (requires Compose to publish the service ports to localhost):
 ```bash
+# Ensure ports are published (localhost:8080 and localhost:8081), then run:
 npx vitest run tests/integration/compose-smoke.test.ts
 ```
+
+Option B — run the test runner inside the Compose network (recommended when host port mapping is unreliable):
+```bash
+# Build the bundled test-runner image (test-runner.Dockerfile is included in the repo):
+docker build -f test-runner.Dockerfile -t po-test-runner:latest .
+
+# Run the test image attached to the Compose application network so services are reachable by name.
+# Replace <compose_project>_application with your Compose network name (often the repo folder name + "_application").
+# Example network name for this repo: plateforme-d-observabilit-centralis-e-aiops-pour-microservices_application
+
+docker run --rm --network plateforme-d-observabilit-centralis-e-aiops-pour-microservices_application \
+  -e ORDER_SERVICE_URL="http://order-service:8081" \
+  -e USER_SERVICE_URL="http://user-service:8080" \
+  po-test-runner:latest
+```
+
+The in-network runner avoids host ↔ container port mapping issues by resolving services using their Compose service names (order-service, user-service).
 
 ---
 
