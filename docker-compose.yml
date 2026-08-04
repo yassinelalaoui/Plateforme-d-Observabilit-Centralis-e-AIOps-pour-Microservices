@@ -31,7 +31,7 @@ services:
       postgres: { condition: service_healthy }
       otel-collector: { condition: service_started }
       logstash: { condition: service_started }
-    ports: ["127.0.0.1:8081:8081"]
+    ports: ["8081:8081"]
     networks: [application, data, telemetry]
     user: "10001:10001"
     read_only: true
@@ -55,7 +55,7 @@ services:
     depends_on:
       order-service: { condition: service_healthy }
       otel-collector: { condition: service_started }
-    ports: ["127.0.0.1:8080:8080"]
+    ports: ["8080:8080"]
     networks: [edge, application, telemetry]
     user: "10001:10001"
     read_only: true
@@ -75,7 +75,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.54.1
-    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/tmp/prometheus"]
     volumes:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./config/alerts:/etc/prometheus/alerts:ro
