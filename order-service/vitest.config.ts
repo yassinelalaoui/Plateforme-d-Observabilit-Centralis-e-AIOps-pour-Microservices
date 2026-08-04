@@ -5,7 +5,8 @@ export default defineConfig({
     include: [
       'src/**/*.test.ts',
       'test/**/*.test.ts',
-      '../tests/**/*.test.ts'
+      '**/tests/**/*.test.ts',
+      '**/test/**/*.test.ts',
     ],
   },
 });

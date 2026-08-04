@@ -5,8 +5,16 @@ import { createOrderRepository, type OrderRepository } from '../src/repositories
 vi.mock('pg', () => {
   const mockQuery = vi.fn();
   const mockEnd = vi.fn();
+  class MockPool {
+    query: any;
+    end: any;
+    constructor() {
+      this.query = mockQuery;
+      this.end = mockEnd;
+    }
+  }
   return {
-    Pool: vi.fn(() => ({ query: mockQuery, end: mockEnd })),
+    Pool: MockPool,
     __mockQuery: mockQuery,
     __mockEnd: mockEnd,
   };
